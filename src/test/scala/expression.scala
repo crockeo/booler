@@ -15,7 +15,7 @@ class ExpressionTest extends org.scalatest.FunSuite {
     assert(Bool(true).eval() == Some(true))
     assert(Bool(false).eval() == Some(false))
 
-    assert(Var().eval() == None)
+    assert(Var("test").eval() == None)
 
     assert(AND(Bool(false), Bool(false)).eval() == Some(false))
     assert(AND(Bool(false), Bool(true)).eval() == Some(false))
@@ -48,37 +48,50 @@ class ExpressionTest extends org.scalatest.FunSuite {
     assert(IFF(Bool(true), Bool(true)).eval() == Some(true))
   }
 
+  test("varNames") {
+    assert(varNames(Bool(true)) == Nil)
+    assert(varNames(AND(Var("this is"), Var("cool"))) == List("this is", "cool"))
+  }
+
   // Testing the functions within Eval.
   test("countVars") {
     assert(countVars(Bool(true)) == 0)
-    assert(countVars(Var()) == 1)
-    assert(countVars(AND(Var(), OR(Var(), XOR(Var(), IF(Var(), IFF(Var(), Var())))))) == 6)
+    assert(countVars(Var("test")) == 1)
+    assert(countVars(AND(Var("test"), OR(Var("test"), XOR(Var("test"), IF(Var("test"), IFF(Var("test"), Var("test"))))))) == 6)
   }
 
   test("fillVariable") {
-    assert(fillVariable(true, AND(Bool(true), Bool(false))) == None)
-    assert(fillVariable(true, AND(Var(), Var())) == Some(AND(Bool(true), Var())))
-    assert(fillVariable(true, OR(Bool(true), Var())) == Some(OR(Bool(true), Bool(true))))
+    assert(fillVariable("a", true, AND(Bool(true), Bool(false))) == AND(Bool(true), Bool(false)))
+    assert(fillVariable("a", true, AND(Var("a"), Bool(false))) == AND(Bool(true), Bool(false)))
+    assert(fillVariable("a", true, AND(Var("a"), OR(Var("b"), Var("a")))) ==
+      AND(Bool(true), OR(Var("b"), Bool(true))))
   }
 
   test("fillVariables") {
-    assert(fillVariables(List(true, false, false), AND(Bool(false), AND(Var(), Bool(true)))) == None)
-    assert(fillVariables(List(true, false, false), AND(Var(), AND(Var(), Var()))) == Some(AND(Bool(true), AND(Bool(false), Bool(false)))))
+    val e = AND(Var("a"), OR(Var("b"), XOR(Var("c"), Var("a"))))
+
+    assert(fillVariables(Nil, e) == e)
+    assert(fillVariables(List(("a", true)), e) == AND(Bool(true), OR(Var("b"), XOR(Var("c"), Bool(true)))))
+    assert(fillVariables(List(("a", true), ("b", false)), e) == AND(Bool(true), OR(Bool(false), XOR(Var("c"), Bool(true)))))
   }
 
   test("evaluateFilled") {
-    assert(!evaluateFilled(List(true, true, false), AND(Var(), Bool(true))))
-    assert(evaluateFilled(List(true, true, false), AND(Var(), OR(Var(), Var()))))
+    val e = AND(Var("a"), OR(Var("b"), XOR(Var("c"), Var("a"))))
+
+    assert(evaluateFilled(List(("a", true), ("b", false)), e) == None)
+    assert(evaluateFilled(List(("a", true), ("b", false), ("c", true)), e) == Some(false))
   }
 
   test("evaluateAll") {
-    assert(!evaluateAll(List(true, true, false), AND(Var(), OR(Var(), Var()))))
-    assert(evaluateAll(List(true, true), OR(Var(), Var())))
+    assert(evaluateAll(List("a", "b"), List(true, true), OR(Var("a"), Var("b"))))
+    assert(evaluateAll(List("a", "b"), List(true, false), XOR(Var("a"), Var("b"))))
+    assert(!evaluateAll(List("a", "b", "c"), List(true, true, false), AND(Var("a"), OR(Var("b"), Var("c")))))
   }
 
   test("isSymmetric") {
-    assert(isSymmetric(Var(), 1))
-    assert(isSymmetric(AND(Var(), Var()), 2))
-    assert(!isSymmetric(AND(Var(), Var()), 1))
+    assert(isSymmetric(Var("a"), 1))
+    assert(isSymmetric(XOR(Var("a"), Var("b")), 1))
+    assert(isSymmetric(AND(Var("a"), Var("b")), 2))
+    assert(!isSymmetric(AND(Var("a"), Var("b")), 1))
   }
 }

@@ -9,7 +9,7 @@ case class Bool(b: Boolean) extends Expression {
   def eval(): Option[Boolean] = Some(b)
 }
 
-case class Var() extends Expression {
+case class Var(name: String) extends Expression {
   def eval(): Option[Boolean] = None
 }
 
@@ -55,65 +55,50 @@ case class IFF(e1: Expression, e2: Expression) extends Expression {
 
 // Evaluation on Expressions.
 object Eval {
-  // Counting the number of variables in an expression.
+  // Getting the list of variable names within an expression.
+  def varNames(e: Expression): List[String] =
+    e match {
+      case Bool(_)     => Nil
+      case Var(name)   => List(name)
+      case AND(e1, e2) => varNames(e1) ++ varNames(e2)
+      case OR (e1, e2) => varNames(e1) ++ varNames(e2)
+      case XOR(e1, e2) => varNames(e1) ++ varNames(e2)
+      case IF (e1, e2) => varNames(e1) ++ varNames(e2)
+      case IFF(e1, e2) => varNames(e1) ++ varNames(e2)
+    }
+
+  // Getting the number of variables in an expression.
   def countVars(e: Expression): Int =
+    varNames(e).length
+
+  // Filling all ocurrences of a variable with a given name with its
+  // corresponding boolean value.
+  def fillVariable(name: String, b: Boolean, e: Expression): Expression =
     e match {
-      case Bool(_)     => 0
-      case Var()       => 1
-      case AND(e1, e2) => countVars(e1) + countVars(e2)
-      case OR (e1, e2) => countVars(e1) + countVars(e2)
-      case XOR(e1, e2) => countVars(e1) + countVars(e2)
-      case IF (e1, e2) => countVars(e1) + countVars(e2)
-      case IFF(e1, e2) => countVars(e1) + countVars(e2)
+      case Var(n) if (n == name) => Bool(b)
+      case AND(e1, e2)           => AND(fillVariable(name, b, e1), fillVariable(name, b, e2))
+      case OR (e1, e2)           => OR (fillVariable(name, b, e1), fillVariable(name, b, e2))
+      case XOR(e1, e2)           => XOR(fillVariable(name, b, e1), fillVariable(name, b, e2))
+      case IF (e1, e2)           => IF (fillVariable(name, b, e1), fillVariable(name, b, e2))
+      case IFF(e1, e2)           => IFF(fillVariable(name, b, e1), fillVariable(name, b, e2))
+      case e                     => e
     }
 
-  // Filling a single variable in an expression.
-  def fillVariable(b: Boolean, e: Expression): Option[Expression] = {
-    def fillPair(f: (Expression, Expression) => Expression, e1: Expression, e2: Expression): Option[Expression] =
-      (fillVariable(b, e1) match {
-        case None => fillVariable(b, e2) match {
-          case None    => None
-          case Some(e) => Some(e1, e)
-        }
-        case Some(e) => Some(e, e2)
-      }) match {
-        case None           => None
-        case Some((e1, e2)) => Some(f(e1, e2))
-      }
-
-    e match {
-      case Bool(_)     => None
-      case Var()       => Some(Bool(b))
-      case AND(e1, e2) => fillPair(AND(_, _), e1, e2)
-      case OR (e1, e2) => fillPair(OR (_, _), e1, e2)
-      case XOR(e1, e2) => fillPair(XOR(_, _), e1, e2)
-      case IF (e1, e2) => fillPair(IF (_, _), e1, e2)
-      case IFF(e1, e2) => fillPair(IFF(_, _), e1, e2)
-    }
-  }
-
-  // Filling the variables in an expression.
-  def fillVariables(bs: List[Boolean], e: Expression): Option[Expression] =
-    bs match {
-      case Nil     => Some(e)
-      case x :: xs => fillVariable(x, e).flatMap(fillVariables(xs, _))
-    }
+  // Filling all variables defined in m within the 
+  def fillVariables(bs: List[(String, Boolean)], e: Expression): Expression =
+    bs.foldLeft(e)((e, p) => p match { case (name, b) => fillVariable(name, b, e) })
 
   // Evaluating a list of variables in an expression.
-  def evaluateFilled(bs: List[Boolean], e: Expression): Boolean =
-    fillVariables(bs, e) match {
-      case None    => false
-      case Some(e) =>
-        e.eval() match {
-          case None    => false
-          case Some(b) => b
-        }
-    }
+  def evaluateFilled(bs: List[(String, Boolean)], e: Expression): Option[Boolean] =
+    fillVariables(bs, e).eval()
 
   // Conjoining the return values of a given expression filled with every
   // permutation of a list of Booleans.
-  def evaluateAll(bs: List[Boolean], e: Expression): Boolean =
-    bs.permutations.map(evaluateFilled(_, e)).fold(true)(_ && _)
+  def evaluateAll(names: List[String], bs: List[Boolean], e: Expression): Boolean =
+    bs.permutations.map(bs => evaluateFilled(names.zip(bs), e)).foldLeft(true)((b: Boolean, ob: Option[Boolean]) => ob match {
+      case None     => false
+      case Some(ob) => b && ob
+    })
 
   // Checking if an expression is symmetric on a given N number of truthy
   // variables.
@@ -123,11 +108,12 @@ object Eval {
     def genBools(truthy: Int, size: Int): List[Boolean] =
       0.until(size).map(_ < truthy).toList
 
-    val vars = countVars(e)
-    if (vars > n)
+    val names = varNames(e)
+    val vars = names.length
+    if (n > vars)
       false
     else {
-      0.until(vars).map(x => evaluateAll(genBools(x, vars), e) == (x == n)).foldLeft(true)(_ && _)
+      0.until(vars).map(x => evaluateAll(names, genBools(x, vars), e) == (x == n)).foldLeft(true)(_ && _)
     }
   }
 }
