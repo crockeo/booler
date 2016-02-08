@@ -61,7 +61,7 @@ trait Parser[T] {
         try {
           self(s) match { case (t, s) => (Some(t), s) }
         } catch {
-          case e: MatchException => (None, s)
+          case e: ParserException => (None, s)
           case e: Exception      => throw e
         }
     }
