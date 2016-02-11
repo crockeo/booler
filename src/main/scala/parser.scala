@@ -202,7 +202,7 @@ object Parsing {
   // The parser directly for parsing out an expression. varParser is at the end
   // because it would match most any input that the other Parsers would as well.
   val expressionParser: Parser[Expression] =
-    boolParser | andParser | orParser | xorParser | ifParser | iffParser | notParser | varParser
+    boolParser | andParser | orParser | xorParser | iffParser | ifParser | notParser | varParser
 
   // Trying to parse out an Expression from a string.
   def expression(str: String): Option[Expression] =
