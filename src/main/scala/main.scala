@@ -3,10 +3,10 @@ package com.github.crockeo.booler
 object Main {
   // "symmetry" program mode.
   def symmetry(e: Expression): Unit = {
-    println("Checking symmetry...")
+    println("Evaluating " + Eval.sPrettyPrint(e))
     for (x <- 0.to(Eval.countVars(e)))
-      println("Symmetric at " + x + ": " + (if (Eval.isSymmetric(e, x)) "Y"
-                                            else                        "N"))
+      println("  Symmetric at " + x + ": " + (if (Eval.isSymmetric(e, x)) "Y"
+                                              else                        "N"))
   }
 
   // The entry point to the program.

@@ -123,4 +123,20 @@ object Eval {
       0.until(vars).map(x => evaluateAll(names, genBools(x, vars), e) == (x == n)).foldLeft(true)(_ && _)
     }
   }
+
+  // Pretty-printing an expression (to a string).
+  def sPrettyPrint(e: Expression): String = e match {
+    case Bool(b) if (b) => "true"
+    case Bool(_)        => "false"
+    case Var(name)      => name
+    case AND(e1, e2)    => "(" + sPrettyPrint(e1) + " ∧ " + sPrettyPrint(e2) + ")"
+    case OR (e1, e2)    => "(" + sPrettyPrint(e1) + " ∨ " + sPrettyPrint(e2) + ")"
+    case XOR(e1, e2)    => "(" + sPrettyPrint(e1) + " ⨂ " + sPrettyPrint(e2) + ")"
+    case IF (e1, e2)    => "(" + sPrettyPrint(e1) + " → " + sPrettyPrint(e2) + ")"
+    case IFF(e1, e2)    => "(" + sPrettyPrint(e1) + " ↔︎ " + sPrettyPrint(e2) + ")"
+    case NOT(e)         => "¬" + sPrettyPrint(e)
+  }
+
+  // Pretty-printing the expression.
+  def prettyPrint(e: Expression): Unit = println(sPrettyPrint(e))
 }
