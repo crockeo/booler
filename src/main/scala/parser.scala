@@ -191,10 +191,18 @@ object Parsing {
   val ifParser  = binaryExpression("IF" , (a, b) => IF (a, b))
   val iffParser = binaryExpression("IFF", (a, b) => IFF(a, b))
 
+  // Parsing out NOT.
+  val notParser: Parser[Expression] = for {
+    _ <- Parsers.string("NOT")
+    _ <- Parsers.consumeWhitespace
+
+    e <- expressionParser
+  } yield NOT(e)
+
   // The parser directly for parsing out an expression. varParser is at the end
   // because it would match most any input that the other Parsers would as well.
   val expressionParser: Parser[Expression] =
-    boolParser | andParser | orParser | xorParser | ifParser | iffParser | varParser
+    boolParser | andParser | orParser | xorParser | ifParser | iffParser | notParser | varParser
 
   // Trying to parse out an Expression from a string.
   def expression(str: String): Option[Expression] =

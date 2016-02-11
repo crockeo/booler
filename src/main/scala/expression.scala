@@ -53,6 +53,11 @@ case class IFF(e1: Expression, e2: Expression) extends Expression {
     } yield a == b
 }
 
+case class NOT(e: Expression) extends Expression {
+  def eval(): Option[Boolean] =
+    e.eval().map(!_)
+}
+
 // Evaluation on Expressions.
 object Eval {
   // Getting the list of variable names within an expression.
@@ -65,6 +70,7 @@ object Eval {
       case XOR(e1, e2) => varNames(e1) ++ varNames(e2)
       case IF (e1, e2) => varNames(e1) ++ varNames(e2)
       case IFF(e1, e2) => varNames(e1) ++ varNames(e2)
+      case NOT(e)      => varNames(e)
     }
 
   // Getting the number of variables in an expression.
@@ -81,6 +87,7 @@ object Eval {
       case XOR(e1, e2)           => XOR(fillVariable(name, b, e1), fillVariable(name, b, e2))
       case IF (e1, e2)           => IF (fillVariable(name, b, e1), fillVariable(name, b, e2))
       case IFF(e1, e2)           => IFF(fillVariable(name, b, e1), fillVariable(name, b, e2))
+      case NOT(e)                => NOT(fillVariable(name, b, e))
       case e                     => e
     }
 
