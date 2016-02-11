@@ -61,10 +61,10 @@ case class NOT(e: Expression) extends Expression {
 // Evaluation on Expressions.
 object Eval {
   // Getting the list of variable names within an expression.
-  def varNames(e: Expression): List[String] =
+  def varNames(e: Expression): Set[String] =
     e match {
-      case Bool(_)     => Nil
-      case Var(name)   => List(name)
+      case Bool(_)     => Set()
+      case Var(name)   => Set(name)
       case AND(e1, e2) => varNames(e1) ++ varNames(e2)
       case OR (e1, e2) => varNames(e1) ++ varNames(e2)
       case XOR(e1, e2) => varNames(e1) ++ varNames(e2)
@@ -75,7 +75,7 @@ object Eval {
 
   // Getting the number of variables in an expression.
   def countVars(e: Expression): Int =
-    varNames(e).length
+    varNames(e).size
 
   // Filling all ocurrences of a variable with a given name with its
   // corresponding boolean value.
@@ -115,7 +115,7 @@ object Eval {
     def genBools(truthy: Int, size: Int): List[Boolean] =
       0.until(size).map(_ < truthy).toList
 
-    val names = varNames(e)
+    val names = varNames(e).toList
     val vars = names.length
     if (n > vars)
       false
